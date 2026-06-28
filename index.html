@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gatepass Registry & Report Dashboard</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container hidden" id="main-app-container">
+    
+    <!-- Sidebar / Header -->
+    <header class="dashboard-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="brand-text">
+          <h1>SecurPass</h1>
+          <p>Gatepass & Document Registry</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <!-- Logged In User Indicator -->
+        <div class="user-profile-header" id="user-profile-info">
+          <span class="user-badge" id="header-username">admin</span>
+          <button id="btn-logout" class="btn btn-secondary btn-sm" title="Log out">
+            <i data-lucide="log-out"></i> Log Out
+          </button>
+        </div>
+        <button id="btn-add-vehicle" class="btn btn-primary hidden">
+          <i data-lucide="plus-circle"></i> Add Vehicle
+        </button>
+        <a href="/api/download" class="btn btn-secondary hidden" id="btn-export-excel">
+          <i data-lucide="download"></i> Export Excel
+        </a>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs (Visible for All Logged-In Users) -->
+    <div class="dashboard-tabs hidden" id="main-tabs" style="display:flex; gap:0.5rem; margin-bottom:1.5rem;">
+      <button class="tab-btn active" data-tab="registry">
+        <i data-lucide="table"></i> Vehicle Registry
+      </button>
+      <button class="tab-btn" data-tab="drivers">
+        <i data-lucide="contact-2"></i> Punch Cards
+      </button>
+      <button class="tab-btn admin-only-btn hidden" data-tab="users" id="tab-btn-users">
+        <i data-lucide="users"></i> User Access Management
+      </button>
+    </div>
+
+    <!-- Main Dashboard Body -->
+    <main class="dashboard-main">
+      
+      <!-- TAB CONTENT: Vehicle Registry -->
+      <div id="tab-content-registry" class="tab-pane active">
+        <!-- Stats Overview Panel -->
+        <section class="stats-grid">
+          <div class="stat-card" data-filter="all">
+            <div class="stat-icon bg-violet">
+              <i data-lucide="truck"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Total Vehicles</span>
+              <span class="stat-value" id="stat-total">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card cursor-pointer" data-filter="expired">
+            <div class="stat-icon bg-rose">
+              <i data-lucide="alert-octagon"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Expired Documents</span>
+              <span class="stat-value text-rose" id="stat-expired">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card cursor-pointer" data-filter="warning">
+            <div class="stat-icon bg-amber">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Expiring Soon</span>
+              <span class="stat-value text-amber" id="stat-warning">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card cursor-pointer" data-filter="active">
+            <div class="stat-icon bg-emerald">
+              <i data-lucide="check-circle-2"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Active / Compliant</span>
+              <span class="stat-value text-emerald" id="stat-active">0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Expired Alerts Section -->
+        <section id="alerts-section" class="alerts-container hidden">
+          <div class="section-title">
+            <i data-lucide="alert-octagon" class="text-rose"></i>
+            <h2>Critical Alerts: Expired Gatepasses / Documents</h2>
+          </div>
+          <div class="alerts-list" id="alerts-list">
+            <!-- Dynamic list of expired notices -->
+          </div>
+        </section>
+
+        <!-- Registry Panel -->
+        <section class="registry-panel">
+          <div class="registry-header">
+            <div class="registry-title-group">
+              <h2>Vehicle Registry</h2>
+              <p id="registry-count">Showing 0 vehicles</p>
+            </div>
+            
+            <div class="registry-controls">
+              <!-- Search Input -->
+              <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search vehicle or driver...">
+              </div>
+              
+              <!-- Filter Dropdown -->
+              <div class="filter-box">
+                <select id="status-filter">
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active / Compliant</option>
+                  <option value="warning">Expiring Soon</option>
+                  <option value="expired">Expired Documents</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registry Table Container -->
+          <div class="table-container">
+            <table class="registry-table">
+              <thead>
+                <tr>
+                  <th>Vehicle & Driver</th>
+                  <th>Clearance Stage</th>
+                  <th>Compliance Status</th>
+                  <th>Attached Docs</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vehicle-table-body">
+                <!-- Dynamic rows -->
+                <tr class="loading-row">
+                  <td colspan="5" id="table-colspan-cell">
+                    <div class="spinner-container">
+                      <div class="spinner"></div>
+                      <p>Loading vehicle data...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB CONTENT: Driver Punch Card Directory -->
+      <div id="tab-content-drivers" class="tab-pane hidden">
+        <section class="registry-panel">
+          <div class="registry-header">
+            <div class="registry-title-group">
+              <h2>Driver & Punch Card Directory</h2>
+              <p id="drivers-count">Showing 0 drivers</p>
+            </div>
+            
+            <div class="registry-controls">
+              <!-- Search Input -->
+              <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="driver-search-input" placeholder="Search driver or punch card...">
+              </div>
+              
+              <!-- Filter Dropdown -->
+              <div class="filter-box">
+                <select id="driver-status-filter">
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active Punch Cards</option>
+                  <option value="inactive">Inactive / No Punch</option>
+                </select>
+              </div>
+
+              <!-- Add Driver Button -->
+              <button class="btn btn-primary" id="btn-add-driver" style="background:#10b981; border:none; box-shadow:none;">
+                <i data-lucide="user-plus"></i> Add Driver Profile
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="registry-table">
+              <thead>
+                <tr>
+                  <th>Driver Name</th>
+                  <th>Punch Card No.</th>
+                  <th>PAN & Bank details</th>
+                  <th>Compliance Attachments</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="drivers-table-body">
+                <!-- Dynamic drivers list rows -->
+                <tr class="loading-row">
+                  <td colspan="6">
+                    <div class="spinner-container">
+                      <div class="spinner"></div>
+                      <p>Loading driver punch cards...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB CONTENT: User Management (Admin Only) -->
+      <div id="tab-content-users" class="tab-pane hidden">
+        <section class="registry-panel">
+          <div class="registry-header">
+            <div class="registry-title-group">
+              <h2>User Access Management</h2>
+              <p id="users-count">Showing 0 users</p>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="registry-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Requested On</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <!-- Dynamic users list rows -->
+                <tr class="loading-row">
+                  <td colspan="5">
+                    <div class="spinner-container">
+                      <div class="spinner"></div>
+                      <p>Loading registry users...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Add Vehicle Drawer (Modal) -->
+  <div id="modal-add-vehicle" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content drawer">
+      <div class="modal-header">
+        <h2>Register New Vehicle</h2>
+        <button class="btn-close" id="btn-close-add-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      
+      <form id="form-add-vehicle" enctype="multipart/form-data">
+        <div class="form-scroll-container">
+          <!-- Basic Details -->
+          <div class="form-section">
+            <h3>Vehicle & Driver Details</h3>
+            <div class="form-group">
+              <label for="vehicleNo">Vehicle Number <span class="required">*</span></label>
+              <input type="text" id="vehicleNo" name="vehicleNo" placeholder="e.g. MH-12-PQ-1234" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="driverName">Driver Name</label>
+              <input type="text" id="driverName" name="driverName" placeholder="e.g. John Doe">
+            </div>
+
+            <div class="form-group">
+              <label for="punchNumber">Punch Number</label>
+              <input type="text" id="punchNumber" name="punchNumber" placeholder="e.g. PN-12345">
+            </div>
+
+            <div class="form-grid-3" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-top: 1rem;">
+              <div class="form-group">
+                <label for="stageInspection">Inspection Stage</label>
+                <select id="stageInspection" name="stageInspection" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white; outline: none; cursor: pointer;">
+                  <option value="Pending">Pending</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stageSafety">Safety Sign</label>
+                <select id="stageSafety" name="stageSafety" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white; outline: none; cursor: pointer;">
+                  <option value="Pending">Pending</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stageDept">Department Sign</label>
+                <select id="stageDept" name="stageDept" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white; outline: none; cursor: pointer;">
+                  <option value="Pending">Pending</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Dates -->
+          <div class="form-section">
+            <h3>Compliance Expiry Dates</h3>
+            <div class="form-grid-3" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+              <div class="form-group">
+                <label for="gatepassExpiry">Gatepass Expiry</label>
+                <input type="date" id="gatepassExpiry" name="gatepassExpiry">
+              </div>
+              <div class="form-group">
+                <label for="insuranceExpiry">Insurance Expiry</label>
+                <input type="date" id="insuranceExpiry" name="insuranceExpiry">
+              </div>
+              <div class="form-group">
+                <label for="pucExpiry">PUC Expiry</label>
+                <input type="date" id="pucExpiry" name="pucExpiry">
+              </div>
+              <div class="form-group">
+                <label for="fitnessExpiry">Fitness Expiry</label>
+                <input type="date" id="fitnessExpiry" name="fitnessExpiry">
+              </div>
+              <div class="form-group">
+                <label for="taxExpiry">Tax Expiry</label>
+                <input type="date" id="taxExpiry" name="taxExpiry">
+              </div>
+              <div class="form-group">
+                <label for="permitExpiry">Permit Expiry</label>
+                <input type="date" id="permitExpiry" name="permitExpiry">
+              </div>
+            </div>
+          </div>
+
+          <!-- Remarks -->
+          <div class="form-section">
+            <h3>Remarks & Notes</h3>
+            <div class="form-group">
+              <label for="remark">Gatepass Remark</label>
+              <textarea id="remark" name="remark" placeholder="Enter remarks, notice reason, or notes..." rows="3"></textarea>
+            </div>
+          </div>
+
+          <!-- Document Uploads -->
+          <div class="form-section">
+            <h3>Document Attachments</h3>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="dlPhoto" class="file-upload-label">
+                  <span class="label-text">Driver's License (DL)</span>
+                  <div class="file-dropzone">
+                    <i data-lucide="file-image"></i>
+                    <span>Choose DL Image/PDF</span>
+                  </div>
+                  <input type="file" id="dlPhoto" name="dlPhoto" accept="image/*,application/pdf" class="file-input">
+                </label>
+                <div class="file-name-preview" id="dl-file-preview">No file chosen</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="punchCard" class="file-upload-label">
+                  <span class="label-text">Punch Card</span>
+                  <div class="file-dropzone">
+                    <i data-lucide="file-text"></i>
+                    <span>Choose Punch Card</span>
+                  </div>
+                  <input type="file" id="punchCard" name="punchCard" accept="image/*,application/pdf" class="file-input">
+                </label>
+                <div class="file-name-preview" id="pc-file-preview">No file chosen</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-form">
+            <span class="submit-text">Register Vehicle</span>
+            <div class="btn-spinner hidden"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Driver Drawer Modal -->
+  <div id="modal-add-driver" class="modal">
+    <div class="modal-overlay" id="add-driver-overlay"></div>
+    <div class="modal-content drawer">
+      <div class="modal-header">
+        <h2>Add Driver Profile</h2>
+        <button class="btn-close" id="btn-close-driver-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      
+      <form id="form-add-driver" enctype="multipart/form-data">
+        <div class="form-scroll-container">
+          <!-- Basic Info -->
+          <div class="form-section">
+            <h3>Driver Details</h3>
+            <div class="form-group">
+              <label for="driverNameD">Driver Name <span class="text-rose">*</span></label>
+              <input type="text" id="driverNameD" name="driverName" placeholder="Enter driver full name" required>
+            </div>
+            <div class="form-group">
+              <label for="dlNumberD">Driver License (DL) Number</label>
+              <input type="text" id="dlNumberD" name="dlNumber" placeholder="e.g. DL-123456789">
+            </div>
+            <div class="form-group">
+              <label for="punchNumberD">Punch Card Number <span class="text-rose">*</span></label>
+              <input type="text" id="punchNumberD" name="punchNumber" placeholder="Enter punch card number" required>
+            </div>
+            <div class="form-group">
+              <label for="panNumberD">PAN Card Number</label>
+              <input type="text" id="panNumberD" name="panNumber" placeholder="Enter 10-digit PAN number">
+            </div>
+            <div class="form-group">
+              <label for="accountNumberD">Bank Account Number (Passbook)</label>
+              <input type="text" id="accountNumberD" name="accountNumber" placeholder="Enter account number">
+            </div>
+            <div class="form-group">
+              <label for="driverStatusD">Driver Status</label>
+              <select id="driverStatusD" name="status" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white; outline: none; cursor: pointer;">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive / Not Punching</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Document Uploads -->
+          <div class="form-section">
+            <h3>Compliance Document Uploads</h3>
+             <div class="form-grid-2" style="margin-bottom:1rem;">
+              <div class="form-group">
+                <label for="dlPhotoD" class="file-upload-label">
+                  <span class="label-text">Driver's License (DL) <span class="text-rose">*</span></span>
+                  <div class="file-dropzone">
+                    <i data-lucide="file-image"></i>
+                    <span>Choose DL Photo</span>
+                  </div>
+                  <input type="file" id="dlPhotoD" name="dlPhoto" accept="image/*,application/pdf" class="file-input" required>
+                </label>
+                <div class="file-name-preview" id="dl-file-preview-d">No file chosen</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="punchCardD" class="file-upload-label">
+                  <span class="label-text">Punch Card Photo <span class="text-rose">*</span></span>
+                  <div class="file-dropzone">
+                    <i data-lucide="file-text"></i>
+                    <span>Choose Punch Card</span>
+                  </div>
+                  <input type="file" id="punchCardD" name="punchCard" accept="image/*,application/pdf" class="file-input" required>
+                </label>
+                <div class="file-name-preview" id="pc-file-preview-d">No file chosen</div>
+              </div>
+            </div>
+            
+            <div class="form-grid-2" style="margin-bottom:1rem;">
+              <div class="form-group">
+                <label for="panPhotoD" class="file-upload-label">
+                  <span class="label-text">PAN Card Photo</span>
+                  <div class="file-dropzone">
+                    <i data-lucide="credit-card"></i>
+                    <span>Choose PAN Card Photo</span>
+                  </div>
+                  <input type="file" id="panPhotoD" name="panPhoto" accept="image/*,application/pdf" class="file-input">
+                </label>
+                <div class="file-name-preview" id="pan-file-preview-d">No file chosen</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="passbookPhotoD" class="file-upload-label">
+                  <span class="label-text">Bank Passbook Photo</span>
+                  <div class="file-dropzone">
+                    <i data-lucide="book-open"></i>
+                    <span>Choose Passbook Photo</span>
+                  </div>
+                  <input type="file" id="passbookPhotoD" name="passbookPhoto" accept="image/*,application/pdf" class="file-input">
+                </label>
+                <div class="file-name-preview" id="pb-file-preview-d">No file chosen</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="baseDocumentD" class="file-upload-label">
+                <span class="label-text">Punch Card Base Document (Used to make Punch Card)</span>
+                <div class="file-dropzone">
+                  <i data-lucide="file-check"></i>
+                  <span>Choose Base Document File</span>
+                </div>
+                <input type="file" id="baseDocumentD" name="baseDocument" accept="image/*,application/pdf" class="file-input">
+              </label>
+              <div class="file-name-preview" id="bd-file-preview-d">No file chosen</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add-driver">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-driver-form">
+            <span class="submit-text">Save Driver Profile</span>
+            <div class="btn-spinner hidden"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox Viewer Modal -->
+  <div id="modal-lightbox" class="modal">
+    <div class="modal-overlay" id="lightbox-overlay"></div>
+    <div class="modal-content lightbox">
+      <button class="btn-close lightbox-close" id="btn-close-lightbox">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="lightbox-body" id="lightbox-body">
+        <!-- Image or PDF goes here dynamically -->
+      </div>
+      <div class="lightbox-footer">
+        <span id="lightbox-title">Document Preview</span>
+        <a href="#" id="btn-download-doc" class="btn btn-secondary btn-sm" download>
+          <i data-lucide="download"></i> Download File
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication Modal Overlay (Sign In / Sign Up) -->
+  <div id="modal-auth" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content auth-card">
+      <div class="auth-brand">
+        <div class="brand-icon">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <h2>SecurPass Registry Gate</h2>
+        <p>Login to view Gatepass & Document Registry</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" class="auth-form">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white;">
+        </div>
+        <div class="auth-error-message text-rose hidden" id="login-error-msg">Invalid credentials.</div>
+        <button type="submit" class="btn btn-primary w-full mt-4" style="width:100%">
+          <span class="btn-text">Sign In</span>
+          <div class="btn-spinner hidden"></div>
+        </button>
+        <p class="auth-switch">Need access? <a href="#" id="link-show-register">Request Access Account</a></p>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" class="auth-form hidden">
+        <div class="form-group">
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" placeholder="At least 3 characters" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="At least 4 characters" required autocomplete="new-password" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem; color: white;">
+        </div>
+        <div class="auth-error-message text-rose hidden" id="reg-error-msg">Username already exists.</div>
+        <button type="submit" class="btn btn-primary w-full mt-4" style="width:100%">
+          <span class="btn-text">Submit Request</span>
+          <div class="btn-spinner hidden"></div>
+        </button>
+        <p class="auth-switch">Already registered? <a href="#" id="link-show-login">Sign In</a></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Account Status Alert Overlay (Pending / Rejected) -->
+  <div id="modal-status" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content auth-card status-card">
+      <div class="status-icon-box" id="status-icon-container">
+        <i data-lucide="clock" id="status-icon" style="width:32px; height:32px; color:white;"></i>
+      </div>
+      <h2 id="status-title">Access Pending</h2>
+      <p id="status-message">Your account registration is currently pending admin approval. Please check back later.</p>
+      <button id="btn-status-logout" class="btn btn-secondary" style="width:100%; margin-top:1.5rem;">
+        <i data-lucide="arrow-left"></i> Back to Login
+      </button>
+    </div>
+  </div>
+
+  <!-- View Vehicle Details Modal (Drawer) -->
+  <div id="modal-view-vehicle" class="modal">
+    <div class="modal-overlay" id="view-modal-overlay"></div>
+    <div class="modal-content drawer">
+      <div class="modal-header">
+        <h2 id="view-title">Vehicle Details</h2>
+        <button class="btn-close" id="btn-close-view-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      
+      <div class="form-scroll-container" id="view-modal-body">
+        <!-- Dynamic content goes here -->
+      </div>
+      
+      <div class="modal-footer" id="view-modal-footer">
+        <!-- Dynamic actions based on role -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

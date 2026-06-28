@@ -5,7 +5,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory, send_file, session
 from openpyxl import Workbook, load_workbook
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+app = Flask(__name__, static_folder='.', static_url_path='')
 
 # Secret key for Flask session signing
 app.secret_key = 'gatepass_secure_session_key_2026_securpass'
